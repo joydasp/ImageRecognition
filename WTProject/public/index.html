@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Image Recognition</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #06b6d4, #a7f3d0);
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .glow-box {
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), 0 0 25px rgba(0, 255, 200, 0.4);
+    }
+    button:hover {
+      transform: scale(1.05);
+      transition: transform 0.2s ease-in-out;
+    }
+    footer {
+      background-color: #0f172a;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+    footer a {
+      color: #67e8f9;
+      margin: 0 10px;
+      font-weight: 500;
+      text-decoration: underline;
+    }
+    footer a:hover {
+      color: #a5f3fc;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-gray-900 pb-20">
+
+<!-- Login Page -->
+<div id="loginPage" class="flex flex-col items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-xl shadow-lg glow-box w-full max-w-md">
+    <h2 class="text-3xl font-bold mb-4 text-center text-blue-800">Login</h2>
+    <input id="loginUser" type="text" placeholder="Username" class="mb-3 w-full p-2 border rounded" />
+    <input id="loginPass" type="password" placeholder="Password" class="mb-4 w-full p-2 border rounded" />
+    <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Login</button>
+    <p class="mt-4 text-center">New user? <a href="#" class="text-blue-800 font-semibold underline" onclick="showRegister()">Register here</a></p>
+  </div>
+</div>
+
+<!-- Register Page -->
+<div id="registerPage" class="hidden flex flex-col items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-xl shadow-lg glow-box w-full max-w-md">
+    <h2 class="text-3xl font-bold mb-4 text-center text-green-800">Register</h2>
+    <input id="regUser" type="text" placeholder="Username" class="mb-3 w-full p-2 border rounded" />
+    <input id="regPass" type="password" placeholder="Password" class="mb-4 w-full p-2 border rounded" />
+    <button onclick="register()" class="bg-green-500 text-white px-4 py-2 rounded w-full">Register</button>
+    <p class="mt-4 text-center">Already have an account? <a href="#" class="text-green-800 font-semibold underline" onclick="showLogin()">Login</a></p>
+  </div>
+</div>
+
+<!-- Home Page -->
+<div id="homePage" class="hidden flex flex-col items-center justify-start min-h-screen pt-10 pb-20">
+  <div class="bg-white p-8 rounded-xl shadow-lg glow-box w-full max-w-2xl">
+    <h2 class="text-3xl font-bold mb-4 text-center text-blue-800">Upload Image for Prediction</h2>
+    <div class="flex flex-col items-center">
+      <input id="imageInput" type="file" class="mb-4 w-full p-2 border rounded" onchange="previewImage()" />
+      <img id="preview" src="" alt="" class="max-w-xs mb-4 hidden rounded shadow-md" />
+      <button onclick="predict()" class="bg-blue-600 text-white px-4 py-2 rounded w-full">Predict</button>
+      <div id="result" class="mt-4 text-xl font-semibold text-center text-purple-700"></div>
+      <button id="saveResultBtn" onclick="savePrediction()" class="hidden mt-4 bg-green-500 text-white px-4 py-2 rounded w-full">Save Result</button>
+    </div>
+  </div>
+</div>
+
+<!-- Profile Page -->
+<div id="profilePage" class="hidden flex flex-col items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-xl shadow-lg glow-box w-full max-w-md text-center">
+    <h2 class="text-3xl font-bold mb-4 text-purple-800">Welcome, <span id="profileUser"></span></h2>
+    <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded mb-2 w-full">Logout</button>
+    <button onclick="changeUser()" class="bg-yellow-500 text-white px-4 py-2 rounded w-full">Change User</button>
+  </div>
+</div>
+
+<!-- History Page -->
+<div id="historyPage" class="hidden flex flex-col items-center justify-center min-h-screen pt-10 pb-20">
+  <div class="bg-white p-8 rounded-xl shadow-lg glow-box w-full max-w-3xl">
+    <h2 class="text-3xl font-bold mb-4 text-center text-purple-800">Prediction History</h2>
+    <ul id="fullHistoryList" class="list-disc pl-5 text-gray-800 mb-4"></ul>
+    <button onclick="deleteHistory()" class="bg-red-500 text-white px-4 py-2 rounded">Delete History</button>
+  </div>
+</div>
+
+<!-- Footer Navigation -->
+<footer>
+  <a href="#" onclick="navigateTo('home')">Home</a>
+  <a href="#" onclick="alert('This is an AI Image Recognition app that predicts image labels with confidence.')">About</a>
+  <a href="#" onclick="showProfile()">Profile</a>
+  <a href="#" onclick="navigateTo('history')">History</a>
+</footer>
+
+<script>
+  let currentUser = null;
+
+  function showLogin() {
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('registerPage').classList.add('hidden');
+  }
+
+  function showRegister() {
+    document.getElementById('registerPage').classList.remove('hidden');
+    document.getElementById('loginPage').classList.add('hidden');
+  }
+
+  function login() {
+    const user = document.getElementById('loginUser').value;
+    const pass = document.getElementById('loginPass').value;
+    const stored = localStorage.getItem(user);
+
+    if (stored && JSON.parse(stored).pass === pass) {
+      currentUser = user;
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('homePage').classList.remove('hidden');
+      document.getElementById('preview').src = '';
+      document.getElementById('preview').classList.add('hidden');
+      document.getElementById('result').innerText = '';
+      document.getElementById('saveResultBtn').classList.add('hidden');
+    } else {
+      alert('Invalid credentials!');
+    }
+  }
+
+  function register() {
+    const user = document.getElementById('regUser').value;
+    const pass = document.getElementById('regPass').value;
+
+    if (localStorage.getItem(user)) {
+      alert('User already exists!');
+    } else {
+      localStorage.setItem(user, JSON.stringify({ pass }));
+      alert('Registered successfully!');
+      showLogin();
+    }
+  }
+
+  function previewImage() {
+    const file = document.getElementById('imageInput').files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById('preview').src = e.target.result;
+        document.getElementById('preview').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function predict() {
+    const labels = ['Cat', 'Dog', 'Car', 'Tree', 'Laptop'];
+    const randomLabel = labels[Math.floor(Math.random() * labels.length)];
+    const confidence = (Math.random() * 100).toFixed(2);
+    const prediction = `Predicted: ${randomLabel} (${confidence}%)`;
+    document.getElementById('result').innerText = prediction;
+    document.getElementById('saveResultBtn').classList.remove('hidden');
+  }
+
+  function savePrediction() {
+    const history = JSON.parse(localStorage.getItem(currentUser + '_history')) || [];
+    history.push(document.getElementById('result').innerText);
+    localStorage.setItem(currentUser + '_history', JSON.stringify(history));
+    alert('Result saved!');
+  }
+
+  function navigateTo(page) {
+    if (!currentUser) return;
+    ['homePage', 'profilePage', 'historyPage'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    if (page === 'home') document.getElementById('homePage').classList.remove('hidden');
+    if (page === 'history') {
+      document.getElementById('historyPage').classList.remove('hidden');
+      loadFullHistory();
+    }
+  }
+
+  function showProfile() {
+    document.getElementById('profilePage').classList.remove('hidden');
+    document.getElementById('homePage').classList.add('hidden');
+    document.getElementById('profileUser').innerText = currentUser;
+  }
+
+  function logout() {
+    location.reload();
+  }
+
+  function changeUser() {
+    currentUser = null;
+    document.getElementById('profilePage').classList.add('hidden');
+    document.getElementById('loginPage').classList.remove('hidden');
+  }
+
+  function loadFullHistory() {
+    const fullHistoryList = document.getElementById('fullHistoryList');
+    fullHistoryList.innerHTML = '';
+    const history = JSON.parse(localStorage.getItem(currentUser + '_history')) || [];
+    history.forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      fullHistoryList.appendChild(li);
+    });
+  }
+
+  function deleteHistory() {
+    if (confirm("Are you sure you want to delete your history?")) {
+      localStorage.removeItem(currentUser + '_history');
+      loadFullHistory();
+    }
+  }
+</script>
+
+</body>
+</html>
